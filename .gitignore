@@ -1,0 +1,11 @@
+.DS_Store
+.venv/
+__pycache__/
+*.pyc
+
+preview/
+
+APS店舗在庫表.xlsx
+宇治在庫表*.pdf
+*.xlsm
+*.xlsx
