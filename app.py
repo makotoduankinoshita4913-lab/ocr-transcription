@@ -19,6 +19,7 @@ def build_dataframe(rows: list[list[str]]) -> pd.DataFrame:
 
 st.title("APS → 宇治在庫表 変換")
 st.caption("APS店舗在庫表.xlsx を読み込んで、宇治在庫表へ B列から貼り付けるTSVを作成します。O列は空欄のまま残します。")
+st.info("上の必須欄には `APS店舗在庫表.xlsx` を入れてください。`宇治在庫表` は完成形の参照ファイルなので、入れる場合は下の任意欄で大丈夫です。")
 
 with st.sidebar:
     st.subheader("使い方")
@@ -36,13 +37,13 @@ with st.sidebar:
 
 
 aps_file = st.file_uploader(
-    "APS店舗在庫表.xlsx",
+    "変換元: APS店舗在庫表.xlsx（必須）",
     type=["xlsx"],
-    help="変換元のAPS店舗在庫表を選んでください。",
+    help="ここには宇治在庫表ではなく、APS店舗在庫表を選んでください。",
 )
 
 reference_files = st.file_uploader(
-    "参照用ファイル（任意）",
+    "参照用: 宇治在庫表 / PDF / xlsm など（任意）",
     type=["xlsm", "xlsx", "pdf"],
     accept_multiple_files=True,
     help="参照確認用です。現状の変換処理では直接使いません。",
@@ -77,7 +78,11 @@ rows = st.session_state.get("rows")
 source_name = st.session_state.get("source_name", "")
 
 if not rows:
-    st.warning("変換できる行が見つかりませんでした。")
+    if "宇治在庫表" in source_name:
+        st.error("これは完成形の `宇治在庫表` のようです。上の必須欄には `APS店舗在庫表.xlsx` を入れてください。")
+        st.info("宇治在庫表を一緒に置いておきたい場合は、下の `参照用` 欄にアップロードしてください。")
+    else:
+        st.warning("変換できる行が見つかりませんでした。APS店舗在庫表のファイルか確認してください。")
     st.stop()
 
 df = build_dataframe(rows)
