@@ -106,7 +106,6 @@ def iter_output_rows_from_book(book: zipfile.ZipFile):
             "",
             "",
             "",
-            "",
         ]
 
 
