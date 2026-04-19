@@ -1,55 +1,71 @@
-# APS → 在庫表 変換
+# 書類転記アプリ
 
-APS店舗在庫表から、在庫表へそのまま貼り付けやすいTSVを作る `Streamlit` アプリです。
+PDF化した書類をOCRで読み取り、スプレッドシートへ貼り付けやすいTSVを作るStreamlitアプリです。
+
+社内共有用のメインアプリは `streamlit_app.py` です。Bonsai/local LLMは使いません。
+
+## 対応している書類
+
+- オークション精算書
+- ウメモト納品書
+- MK石油請求書
 
 ## できること
 
-- `APS店舗在庫表.xlsx` をアップロードして変換
-- `在庫表` は完成形の参照用として扱う
-- 在庫表向けの列順でプレビュー表示
-- Googleスプレッドシートへ貼り付けるためのTSVを表示
-- `O列` は空欄のままにして、既存の数式を残す
-
-## 出力列
-
-在庫表の `B列` から貼り付ける前提で、次の列を出力します。
-
-- `B` 車名
-- `C` 仕入先
-- `D` 仕入日
-- `E` 金額
-- `F` 車番
-- `G` 在庫日数
-- `H` 陸送等
-- `I` ガリバー
-- `J` UNO/KEP
-- `K` 中野鈑金
-- `L` 苗村/松崎
-- `M` ウメモト
-- `N` その他
-- `O` は空欄
-
-## 車名の作り方
-
-- `車名 = 車種名 + グレード名`
+- PDFまたは画像ファイルをアップロード
+- 複数ページPDFを全ページOCR
+- 車名欄付近を切り出して再OCR
+- 画像を拡大、コントラスト強化、白黒化して読み取り補助
+- 抽出後の表を画面上で確認・修正
+- スプレッドシート貼り付け用TSVを出力
+- OCRテキストを確認
 
 ## 起動方法
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
-streamlit run app.py
+pip install -r requirements-share.txt
+streamlit run streamlit_app.py
 ```
 
-## CLIで使う場合
+## OCRの事前準備
+
+このアプリはTesseract OCRを使います。MacではHomebrewで入れます。
+
+```bash
+brew install tesseract tesseract-lang
+```
+
+## スキャン設定の目安
+
+- 通常は300dpiでも可
+- 車名や金額が抜ける場合は600dpi推奨
+- 文書モード、グレースケール、傾き補正ONがおすすめ
+- 圧縮を強くしすぎるとOCR精度が落ちることがあります
+
+## 運用時の注意
+
+OCR結果は100%ではありません。貼り付け前に、画面上の表で日付・金額・車名を確認してください。
+
+特に確認したい項目:
+
+- 金額の桁
+- 日付
+- 車名
+- 客注、店舗経費などの転記列
+
+## 開発用メモ
+
+- `streamlit_app.py`: 社内共有用のBonsaiなし版
+- `app.py`: これまでの実験版。領収書手入力とlocal LLM接続設定を含みます
+- `requirements-share.txt`: 社内共有用の最小依存
+- `requirements.txt`: 実験版も含めた依存
+
+## 旧APS変換CLI
+
+以前のAPS在庫表変換CLIは残しています。
 
 ```bash
 python3 convert_aps_to_uji_tsv.py
 ```
-
-## 備考
-
-- 現状の参照用 `xlsm` / `pdf` アップロードは確認用で、変換ロジックにはまだ使っていません。
-- 上の必須アップロード欄には、完成形の `在庫表` ではなく、変換元の `APS店舗在庫表.xlsx` を入れてください。
-- 変換元の想定は `APS店舗在庫表.xlsx` の1シート目 (`sheet1.xml`) です。
