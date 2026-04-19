@@ -37,6 +37,16 @@ streamlit run streamlit_app.py
 brew install tesseract tesseract-lang
 ```
 
+## Streamlit Community Cloudに追加する場合
+
+Streamlit Cloudの `New app` で次を指定します。
+
+- Repository: `makotoduankinoshita4913-lab/aps-excel-convert`
+- Branch: `main`
+- Main file path: `streamlit_app.py`
+
+Cloud上では `packages.txt` によりTesseract OCRもインストールされます。
+
 ## スキャン設定の目安
 
 - 通常は300dpiでも可
