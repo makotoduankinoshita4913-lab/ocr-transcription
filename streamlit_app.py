@@ -1,6 +1,7 @@
 import pandas as pd
 import streamlit as st
 
+from convert_aps_to_uji_tsv import OUTPUT_HEADERS, rows_from_bytes, rows_from_pdf_bytes, rows_to_tsv
 from app import (
     ACCOUNTING_FIELD_ORDER,
     AUCTION_FIELD_ORDER,
@@ -52,6 +53,64 @@ def render_sidebar() -> dict[str, bool]:
         )
 
     return {"debug": debug}
+
+
+def render_aps_inventory_tab(settings: dict[str, bool]) -> None:
+    st.subheader("APS在庫表")
+    st.caption("APS店舗在庫表のExcelまたはPDFから、在庫表へB列から貼り付けるTSVを作成します。O列は出力しません。")
+
+    source_file = st.file_uploader(
+        "APS店舗在庫表 Excel / PDF",
+        type=["xlsx", "pdf"],
+        accept_multiple_files=False,
+        key="aps_inventory_source",
+        help="Excel版またはPDF版のAPS店舗在庫表をアップロードしてください。",
+    )
+    reference_file = st.file_uploader(
+        "転記先の在庫表（任意）",
+        type=["xlsx", "xlsm", "pdf"],
+        accept_multiple_files=False,
+        key="aps_inventory_reference",
+        help="確認用です。抽出処理には使いません。",
+    )
+    if reference_file:
+        st.caption(f"転記先サンプル: {reference_file.name}")
+
+    if not source_file:
+        st.info("APS店舗在庫表のExcelまたはPDFをアップロードしてください。")
+        return
+
+    file_suffix = source_file.name.lower().rsplit(".", 1)[-1]
+    try:
+        if file_suffix == "pdf":
+            rows = rows_from_pdf_bytes(source_file.getvalue())
+        else:
+            rows = rows_from_bytes(source_file.getvalue())
+    except Exception as exc:
+        st.error(f"読み取りに失敗しました: {exc}")
+        return
+
+    if not rows:
+        st.warning("変換できる行が見つかりませんでした。APS店舗在庫表のファイルか確認してください。")
+        return
+
+    st.success(f"{len(rows)}件の在庫候補を抽出しました。貼り付け前に表で確認・修正してください。")
+    edited_df = st.data_editor(
+        pd.DataFrame(rows, columns=OUTPUT_HEADERS),
+        width="stretch",
+        hide_index=True,
+        num_rows="dynamic",
+        key="aps_inventory_editor",
+    )
+    edited_rows = edited_df.fillna("").astype(str).values.tolist()
+    render_tsv(rows_to_tsv(edited_rows), "aps_inventory_copy", height=240)
+
+    if settings["debug"]:
+        st.subheader("デバッグ")
+        st.write("入力ファイル", source_file.name)
+        st.write("列数", len(OUTPUT_HEADERS))
+        st.write("行データ列数", sorted(set(len(row) for row in rows)))
+        st.dataframe(pd.DataFrame(rows, columns=OUTPUT_HEADERS), width="stretch", hide_index=True)
 
 
 def render_auction_tab(settings: dict[str, bool]) -> None:
@@ -188,7 +247,9 @@ def render_ui() -> None:
     st.title("書類転記アプリ")
     st.caption("Bonsaiなし版。PDF/画像をOCRで読み取り、確認・修正してからスプレッドシートへ貼り付けるためのTSVを作成します。")
 
-    auction_tab, umemoto_tab, mk_tab = st.tabs([TAB_AUCTION, TAB_UMEMOTO, TAB_MK])
+    aps_tab, auction_tab, umemoto_tab, mk_tab = st.tabs(["APS在庫表", TAB_AUCTION, TAB_UMEMOTO, TAB_MK])
+    with aps_tab:
+        render_aps_inventory_tab(settings)
     with auction_tab:
         render_auction_tab(settings)
     with umemoto_tab:
